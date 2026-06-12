@@ -88,4 +88,61 @@ router.put('/xp', async (req, res) => {
     res.json({ success: true, user: data })
 })
 
+// SAUVEGARDER PROGRESSION
+router.put('/progression', async (req, res) => {
+    const authHeader = req.headers.authorization
+    if (!authHeader) return res.status(401).json({ error: 'Token manquant' })
+
+    const token = authHeader.replace('Bearer ', '')
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) return res.status(401).json({ error: 'Token invalide' })
+
+    const { language, lessons_completed, total_lessons_done } = req.body
+
+    const { data: existing } = await supabase
+        .from('progression')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('language', language)
+        .single()
+
+    let result
+    if (existing) {
+        result = await supabase
+            .from('progression')
+            .update({ lessons_completed, total_lessons_done, updated_at: new Date() })
+            .eq('user_id', user.id)
+            .eq('language', language)
+    } else {
+        result = await supabase
+            .from('progression')
+            .insert({ user_id: user.id, language, lessons_completed, total_lessons_done })
+    }
+
+    if (result.error) return res.status(500).json({ error: result.error.message })
+
+    res.json({ success: true })
+})
+
+// GET PROGRESSION
+router.get('/progression', async (req, res) => {
+    const authHeader = req.headers.authorization
+    if (!authHeader) return res.status(401).json({ error: 'Token manquant' })
+
+    const token = authHeader.replace('Bearer ', '')
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) return res.status(401).json({ error: 'Token invalide' })
+
+    const { data, error } = await supabase
+        .from('progression')
+        .select('*')
+        .eq('user_id', user.id)
+
+    if (error) return res.status(500).json({ error: error.message })
+
+    res.json({ success: true, data })
+})
+
 export default router
