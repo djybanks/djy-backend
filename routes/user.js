@@ -42,7 +42,7 @@ router.put('/profile', async (req, res) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return res.status(401).json({ error: 'Token invalide' })
 
-    const { username, bio, avatar_color, selected_language, interface_lang } = req.body
+    const { username, bio, avatar_color, selected_language, interface_lang, streak } = req.body
 
     const updates = {}
     if (username) updates.username = username
@@ -50,6 +50,7 @@ router.put('/profile', async (req, res) => {
     if (avatar_color) updates.avatar_color = avatar_color
     if (selected_language) updates.selected_language = selected_language
     if (interface_lang) updates.interface_lang = interface_lang
+    if (streak !== undefined) updates.streak = streak
 
     const { data, error } = await supabase
         .from('profiles')
@@ -139,6 +140,19 @@ router.get('/progression', async (req, res) => {
         .from('progression')
         .select('*')
         .eq('user_id', user.id)
+
+    if (error) return res.status(500).json({ error: error.message })
+
+    res.json({ success: true, data })
+})
+
+// CLASSEMENT
+router.get('/leaderboard', async (req, res) => {
+    const { data, error } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .order('rank', { ascending: true })
+        .limit(10)
 
     if (error) return res.status(500).json({ error: error.message })
 
