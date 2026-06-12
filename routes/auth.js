@@ -6,7 +6,6 @@ dotenv.config()
 
 const router = express.Router()
 
-// Client avec la clé service_role pour accéder aux fonctions admin
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -24,7 +23,6 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Mot de passe minimum 6 caractères.' })
   }
 
-  // Utilisation de la méthode admin pour forcer la création sans restriction d'email
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -38,7 +36,6 @@ router.post('/register', async (req, res) => {
   const userId = data.user?.id
 
   if (userId) {
-    // Insertion avec uniquement les colonnes id et username
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -99,13 +96,16 @@ router.post('/login', async (req, res) => {
   })
 })
 
-// DÉCONNEXION
+// DÉCONNEXION PROPRE
 router.post('/logout', async (req, res) => {
-  const { error } = await supabase.auth.signOut()
+  const authHeader = req.headers.authorization
+  if (!authHeader) return res.status(401).json({ error: 'Token manquant' })
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
+  const token = authHeader.replace('Bearer ', '')
+
+  const { error } = await supabase.auth.admin.signOut(token)
+
+  if (error) return res.status(500).json({ error: error.message })
 
   res.json({ success: true, message: 'Déconnecté avec succès.' })
 })
