@@ -59,7 +59,7 @@ router.post('/register', async (req, res) => {
   })
 })
 
-// CONNEXION
+// CONNEXION EMAIL/MOT DE PASSE
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
 
@@ -94,6 +94,53 @@ router.post('/login', async (req, res) => {
     token,
     user: profile
   })
+})
+
+// CONNEXION GOOGLE — génère l'URL OAuth
+router.get('/google', async (req, res) => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.FRONTEND_URL}/auth-callback.html`
+    }
+  })
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  res.json({ success: true, url: data.url })
+})
+
+// CALLBACK GOOGLE — échange le code contre un token
+router.get('/callback', async (req, res) => {
+  const { code } = req.query
+
+  if (!code) return res.status(400).json({ error: 'Code manquant' })
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  const userId = data.user?.id
+  const token = data.session?.access_token
+  const email = data.user?.email
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (!profile) {
+    await supabase.from('profiles').insert({
+      id: userId,
+      username: email.split('@')[0],
+      email
+    })
+  }
+
+  res.redirect(
+    `${process.env.FRONTEND_URL}/auth-callback.html?token=${token}&userId=${userId}`
+  )
 })
 
 // DÉCONNEXION PROPRE

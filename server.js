@@ -8,7 +8,16 @@ import userRoutes from './routes/user.js'
 dotenv.config()
 
 const app = express()
-app.use(cors())
+
+app.use(cors({
+    origin: [
+        'https://djy-academy-hub.vercel.app',
+        'http://localhost:8080',
+        'http://127.0.0.1:8080'
+    ],
+    credentials: true
+}))
+
 app.use(express.json())
 
 const supabase = createClient(
