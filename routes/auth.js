@@ -23,10 +23,9 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Mot de passe minimum 6 caractères.' })
   }
 
-  const { data, error } = await supabase.auth.admin.createUser({
+  const { data, error } = await supabase.auth.signUp({
     email,
-    password,
-    email_confirm: false
+    password
   })
 
   if (error) {
