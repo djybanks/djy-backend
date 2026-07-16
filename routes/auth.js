@@ -38,10 +38,10 @@ router.post('/register', async (req, res) => {
   if (userId) {
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert({
+      .upsert({
         id: userId,
         username
-      })
+      }, { onConflict: 'id' })
 
     if (profileError) {
       return res.status(500).json({ error: profileError.message })
@@ -131,11 +131,11 @@ router.get('/callback', async (req, res) => {
     .single()
 
   if (!profile) {
-    await supabase.from('profiles').insert({
+    await supabase.from('profiles').upsert({
       id: userId,
       username: email.split('@')[0],
       email
-    })
+    }, { onConflict: 'id' })
   }
 
   res.redirect(
